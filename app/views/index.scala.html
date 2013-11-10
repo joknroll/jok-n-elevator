@@ -1,18 +1,29 @@
 @(elevator: Elevator)
-
-<html>
-<head></head>
-<body>
+@main("jok-n-elevator") {
 <ul>
 <li>
 name: @elevator.name
 </li>
-<li>maxFloor: @elevator.maxFloor
-</li>
-<li>minFloor: @elevator.minFloor
-</li>
+
 <li>currentFloor: @elevator.currentFloor
 </li>
+<li>user in elevator: @elevator.userIn
+</li>
 </ul>
-</body>
-</html>
+<p>goQueue<p>
+<ul>
+ @for(goElement <- elevator.goQueue){
+	<li>
+		@goElement
+	</li>
+	}
+</ul>
+<p>callQueue<p>
+<ul>
+ @for(callElement <- elevator.callQueue){
+	<li>
+		@callElement.atFloor : @callElement.to
+	</li>
+	}
+</ul>
+}

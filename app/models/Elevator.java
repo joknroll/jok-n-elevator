@@ -1,6 +1,12 @@
 package models;
 
 import java.math.BigDecimal;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import tools.Call;
+import tools.Directions;
 
 public class Elevator {
 
@@ -15,6 +21,11 @@ public class Elevator {
 	public int consecutiveUp = 0;
 	public int consecutiveDown = 0;
 
+	public AtomicInteger userIn = new AtomicInteger();
+
+	public Queue<Integer> goQueue = new ConcurrentLinkedQueue<Integer>();
+	public Queue<Call> callQueue = new ConcurrentLinkedQueue<Call>();
+
 	public String name = "jok Elevator";
 	public String previousCommand = "OPEN";
 
@@ -25,61 +36,105 @@ public class Elevator {
 		return instance;
 	}
 
-	private static String commands[] = { "OPEN", "CLOSE", NOTHING,
-	// "OPEN","CLOSE","UP",
-	// "OPEN","CLOSE","UP",
-	// "OPEN","CLOSE","UP",
-	// "OPEN","CLOSE","UP",
-	// "OPEN","CLOSE","UP",
-	// "OPEN","CLOSE","DOWN",
-	// "OPEN","CLOSE","DOWN",
-	// "OPEN","CLOSE","DOWN",
-	// "OPEN","CLOSE","DOWN",
-	// "OPEN","CLOSE","DOWN"
+	private static String commands[] = { "NOTHING", "OPEN", "CLOSE"
 	};
 
 	public String nextCommand() {
-		String commandToReturn = commands[(count++) % commands.length];
 		boolean upOrDownState = count % 3 == 0;
-
+		String commandToReturn = "NONE";
 		if (upOrDownState) {
-			boolean currentFloorIsMax = (maxFloor == currentFloor);
-			boolean currentFloorIsMin = (minFloor == currentFloor);
-
-			if (currentFloorIsMax && currentFloorIsMin) {
+			boolean noCallAndNoGo = goQueue.size() == 0 && callQueue.size() == 0;
+			if (noCallAndNoGo) {
 				commandToReturn = NOTHING;
-				System.out.println("++ currentFloor: "+currentFloor+ " maxFloor: "+maxFloor+" minFloor"+minFloor);
+				count = 0;
 			} else {
-				commandToReturn = chooseUpOrDown(
-						commandToReturn);
+				boolean onlyCall = goQueue.size() == 0 && callQueue.size() > 0;
+				boolean onlyGo = goQueue.size() > 0 && callQueue.size() == 0;
+				boolean both = goQueue.size() > 0 && callQueue.size() > 0;
+				if (onlyGo) {
+					commandToReturn = onlyGoAction(commandToReturn);
+				} else if(onlyCall){
+					commandToReturn = onlyCallAction(commandToReturn);
+				} else if (both) {
+					commandToReturn = onlyGoAction(commandToReturn);
+				}
 			}
-
-		}else{
+			count  = 1;
+		} else {
 			if (previousCommand.equals(UP)) {
 				currentFloor++;
 			} else if (previousCommand.equals(DOWN)) {
 				currentFloor--;
 			}
+			commandToReturn = commands[(count++) % commands.length];
 		}
 
-		incrementConsecutivesDirections(commandToReturn);
 		previousCommand = commandToReturn;
 		return commandToReturn;
 	}
 
-	private String chooseUpOrDown(String commandToReturn) {
+	private String onlyGoAction(String commandToReturn) {
+		int go = goQueue.peek();
 
-		if (maxFloor > currentFloor) {
-			commandToReturn = UP;
-		} else if (minFloor < currentFloor && (maxFloor == currentFloor)) {
-			commandToReturn = DOWN;
-//			maxFloor = minFloor;
-		} else if(minFloor == currentFloor){
-			commandToReturn = UP;
-		} else if(currentFloor == 0){
-			commandToReturn = NOTHING;			
+		boolean iAmAtAGoFloor = currentFloor == go;
+
+		if (iAmAtAGoFloor) {
+			goQueue.poll();
+			if(goQueue.size() > 0){
+				go = goQueue.peek();
+				commandToReturn = goUpOrDown(commandToReturn, go);
+			}else{
+				commandToReturn = "NOTHING";
+			}
+		}else{
+			commandToReturn = goUpOrDown(commandToReturn, go);
 		}
+		
+		return commandToReturn;
+	}
 
+	private String goUpOrDown(String commandToReturn, int go) {
+		boolean goFloorIsUp = currentFloor < go;
+		boolean goFloorIsDown = currentFloor > go;
+		if (goFloorIsUp) {
+			commandToReturn = "UP";
+		} else if(goFloorIsDown){
+			commandToReturn = "DOWN";
+		}else{
+			commandToReturn = "NOTHING";
+			System.out.println("goUpOrDown : i am lost");
+		}
+		return commandToReturn;
+	}
+
+	private String onlyCallAction(String commandToReturn) {
+		Call call = callQueue.peek();
+		boolean iAmAtACallFloor = currentFloor == call.atFloor;
+		boolean callFloorIsUp = currentFloor < call.atFloor;
+		boolean callFloorIsDown = currentFloor > call.atFloor;
+		if (iAmAtACallFloor) {
+			callQueue.poll();
+			if(callQueue.size() >0){
+				call = callQueue.peek();
+				commandToReturn = callUpOrDown(commandToReturn, call);
+			}else{
+				commandToReturn = "NOTHING";
+			}
+		} else {
+			commandToReturn = callUpOrDown(commandToReturn, call);
+		}
+			
+		return commandToReturn;
+	}
+
+	private String callUpOrDown(String commandToReturn, Call call) {
+		boolean callFloorIsUp = currentFloor < call.atFloor;
+		boolean callFloorIsDown = currentFloor > call.atFloor;
+		if (callFloorIsUp) {
+			commandToReturn = "UP";
+		} else if(callFloorIsDown){
+			commandToReturn = "DOWN";
+		}
 		return commandToReturn;
 	}
 
@@ -96,14 +151,21 @@ public class Elevator {
 		return "reset";
 	}
 
-	public void actionFloor(int floorToGo) {
-		if(currentFloor == 0){
-			minFloor = floorToGo;
-		}else{
-			minFloor = Math.min(minFloor, floorToGo);
-		}
-		maxFloor = Math.max(maxFloor, floorToGo);
-		System.out.println("floorToGo: "+floorToGo+ " maxFloor: "+maxFloor+" minFloor"+minFloor);
+	public void addGo(int floorToGo) {
+		goQueue.offer(floorToGo);
+	}
+
+	public void addCall(int atFloor, String to) {
+		Call call = new Call(atFloor, Directions.valueOf(to));
+		callQueue.offer(call);
+	}
+
+	public Integer addUser() {
+		return userIn.incrementAndGet();
+	}
+
+	public Integer removeUser() {
+		return userIn.decrementAndGet();
 	}
 
 }

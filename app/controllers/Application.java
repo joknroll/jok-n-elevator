@@ -25,18 +25,20 @@ public class Application extends Controller {
 	}
 
 	public static Result go(int floorToGo){
-		Elevator.getInstance().actionFloor(floorToGo);
+		Elevator.getInstance().addGo(floorToGo);
 		return ok("go floorToGo: "+floorToGo);		
 	}
 	public static Result call(int atFloor, String to){
-		Elevator.getInstance().actionFloor(atFloor);
+		Elevator.getInstance().addCall(atFloor, to);
 		return ok("call atFloor: "+atFloor+" to:"+to);		
 	}
 	public static Result userHasEntered(){
-		return ok("userHasEntered");		
+		Integer nbOfUser =  Elevator.getInstance().addUser();
+		return ok("userHasEntered. Now we are: "+nbOfUser);		
 	}
 	public static Result userHasExited(){
-		return ok("userHasExited");		
+		Integer nbOfUser = Elevator.getInstance().removeUser();
+		return ok("userHasExited Now we are: "+nbOfUser);		
 	}
 
 }
