@@ -19,9 +19,13 @@ public class Application extends Controller {
 		return ok(Elevator.getInstance().nextCommand());		
 	}
 	
-	public static Result reset(String cause){
-		Elevator.getInstance().reset();
-		return ok("Reset Elevator. Cause: "+cause);		
+	public static Result reset(String cause, Integer lowerFloor, Integer higherFloor, Integer cabinSize){
+		if(lowerFloor != null && higherFloor != null && cabinSize != null){
+			Elevator.getInstance().reset(lowerFloor,higherFloor,cabinSize );			
+		}else{			
+			Elevator.getInstance().reset();
+		}
+		return ok("Reset Elevator. Cause: "+cause+ "  lowerFloor: "+lowerFloor+" ,higherFloor: "+higherFloor+" ,cabinSize: "+cabinSize);		
 	}
 
 	public static Result go(int floorToGo){

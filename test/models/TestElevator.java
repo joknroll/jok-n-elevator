@@ -62,6 +62,20 @@ public class TestElevator {
 		assertThat(elevator.currentFloor).isEqualTo(0);
 	}
 
+	@Test
+	public void testCurrentFloorIsNotInGoQueue(){
+		// TODO
+	}
+
+	@Test
+	public void testCurrentFloorIsNotInCallQueue(){
+		// TODO
+	}
+
+	@Test
+	public void testMAxSizeCabineWontOpenTheDoor(){
+		// TODO
+	}
 
 	
 	private void repeateNextCommand(Elevator elevator, int repeate) {

@@ -21,6 +21,11 @@ public class Elevator {
 	public int consecutiveUp = 0;
 	public int consecutiveDown = 0;
 
+	public Integer lowerFloor;
+	public Integer higherFloor;
+	public Integer cabinSize;
+	
+	
 	public AtomicInteger userIn = new AtomicInteger();
 
 	public Queue<Integer> goQueue = new ConcurrentLinkedQueue<Integer>();
@@ -28,6 +33,23 @@ public class Elevator {
 
 	public String name = "jok Elevator";
 	public String previousCommand = "OPEN";
+
+	
+	public Elevator(){
+		this(0,19,20);
+	}
+	/**
+	 * 
+	 * @param lowerFloor
+	 * @param higherFloor
+	 * @param cabinSize
+	 */
+	public Elevator(Integer lowerFloor, Integer higherFloor, Integer cabinSize) {
+		this.lowerFloor = lowerFloor;
+		this.higherFloor = higherFloor;
+		this.cabinSize = cabinSize;
+		this.currentFloor = lowerFloor;
+	}
 
 	public static synchronized Elevator getInstance() {
 		if (instance == null) {
@@ -68,16 +90,13 @@ public class Elevator {
 			}
 			commandToReturn = commands[(count++) % commands.length];
 		}
-
 		previousCommand = commandToReturn;
 		return commandToReturn;
 	}
 
 	private String onlyGoAction(String commandToReturn) {
 		int go = goQueue.peek();
-
 		boolean iAmAtAGoFloor = currentFloor == go;
-
 		if (iAmAtAGoFloor) {
 			goQueue.poll();
 			if(goQueue.size() > 0){
@@ -89,7 +108,6 @@ public class Elevator {
 		}else{
 			commandToReturn = goUpOrDown(commandToReturn, go);
 		}
-		
 		return commandToReturn;
 	}
 
@@ -110,8 +128,6 @@ public class Elevator {
 	private String onlyCallAction(String commandToReturn) {
 		Call call = callQueue.peek();
 		boolean iAmAtACallFloor = currentFloor == call.atFloor;
-		boolean callFloorIsUp = currentFloor < call.atFloor;
-		boolean callFloorIsDown = currentFloor > call.atFloor;
 		if (iAmAtACallFloor) {
 			callQueue.poll();
 			if(callQueue.size() >0){
@@ -123,7 +139,6 @@ public class Elevator {
 		} else {
 			commandToReturn = callUpOrDown(commandToReturn, call);
 		}
-			
 		return commandToReturn;
 	}
 
@@ -134,34 +149,43 @@ public class Elevator {
 			commandToReturn = "UP";
 		} else if(callFloorIsDown){
 			commandToReturn = "DOWN";
+		}else{
+			commandToReturn = "NOTHING";
+			System.out.println("callUpOrDown : i am lost");
 		}
 		return commandToReturn;
 	}
 
-	private void incrementConsecutivesDirections(String commandToReturn) {
-		if (commandToReturn.equals(UP)) {
-			consecutiveUp++;
-		} else if (commandToReturn.equals(DOWN)) {
-			consecutiveDown++;
-		}
+	public String reset(Integer lowerFloor, Integer higherFloor, Integer cabinSize) {
+		instance = new Elevator(lowerFloor,higherFloor,cabinSize);
+		System.out.println("Rest : Create new instance of elevator with lowerFloor: "+lowerFloor+" ,higherFloor: "+higherFloor+" ,cabinSize: "+cabinSize);
+		return "reset";
 	}
-
 	public String reset() {
-		instance = new Elevator();
+		instance = new Elevator(0, 19, 20);
 		return "reset";
 	}
 
 	public void addGo(int floorToGo) {
-		goQueue.offer(floorToGo);
+		if(floorToGo >= lowerFloor && floorToGo <= higherFloor){
+			goQueue.offer(floorToGo);
+		}
 	}
 
 	public void addCall(int atFloor, String to) {
-		Call call = new Call(atFloor, Directions.valueOf(to));
-		callQueue.offer(call);
+		if(atFloor >= lowerFloor && atFloor <= higherFloor){
+			Call call = new Call(atFloor, Directions.valueOf(to));
+			callQueue.offer(call);
+		}
 	}
 
 	public Integer addUser() {
-		return userIn.incrementAndGet();
+		if(userIn.get() < cabinSize){
+			return userIn.incrementAndGet();			
+		}else{
+			System.out.println("max size reach: "+cabinSize);
+			return userIn.get();
+		}
 	}
 
 	public Integer removeUser() {
