@@ -63,6 +63,8 @@ public class Elevator {
 
 	public String nextCommand() {
 		boolean upOrDownState = count % 3 == 0;
+		boolean openState = count % 3 == 1;
+		boolean closeState = count % 3 == 2;
 		String commandToReturn = "NONE";
 		if (upOrDownState) {
 			boolean noCallAndNoGo = goQueue.size() == 0 && callQueue.size() == 0;
@@ -180,12 +182,10 @@ public class Elevator {
 	}
 
 	public Integer addUser() {
-		if(userIn.get() < cabinSize){
-			return userIn.incrementAndGet();			
-		}else{
+		if(userIn.get() >= cabinSize){
 			System.out.println("max size reach: "+cabinSize);
-			return userIn.get();
 		}
+		return userIn.incrementAndGet();			
 	}
 
 	public Integer removeUser() {
