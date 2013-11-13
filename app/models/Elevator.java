@@ -49,6 +49,7 @@ public class Elevator {
 		this.higherFloor = higherFloor;
 		this.cabinSize = cabinSize;
 		this.currentFloor = lowerFloor;
+		instance = this;
 	}
 
 	public static synchronized Elevator getInstance() {
