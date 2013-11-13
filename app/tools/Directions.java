@@ -1,7 +1,7 @@
 package tools;
 
 public enum Directions {
-	UP("IP"), DOWN("DOWN");
+	UP("UP"), DOWN("DOWN");
 	
     /**
      * @param text

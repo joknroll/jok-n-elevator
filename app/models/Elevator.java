@@ -1,12 +1,12 @@
 package models;
 
-import java.math.BigDecimal;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import tools.Call;
 import tools.Directions;
+import tools.Door;
 
 public class Elevator {
 
@@ -65,37 +65,54 @@ public class Elevator {
 		boolean upOrDownState = count % 3 == 0;
 		boolean openState = count % 3 == 1;
 		boolean closeState = count % 3 == 2;
-		String commandToReturn = "NONE";
+		String commandToReturn = "NOTHING";
 		if (upOrDownState) {
-			boolean noCallAndNoGo = goQueue.size() == 0 && callQueue.size() == 0;
-			if (noCallAndNoGo) {
-				commandToReturn = NOTHING;
-				count = 0;
-			} else {
-				boolean onlyCall = goQueue.size() == 0 && callQueue.size() > 0;
-				boolean onlyGo = goQueue.size() > 0 && callQueue.size() == 0;
-				boolean both = goQueue.size() > 0 && callQueue.size() > 0;
-				if (onlyGo) {
-					commandToReturn = onlyGoAction(commandToReturn);
-				} else if(onlyCall){
-					commandToReturn = onlyCallAction(commandToReturn);
-				} else if (both) {
-					commandToReturn = onlyGoAction(commandToReturn);
-				}
-			}
-			count  = 1;
+			commandToReturn = getUpOrDownCommand(commandToReturn);
 		} else {
-			if (previousCommand.equals(UP)) {
-				currentFloor++;
-			} else if (previousCommand.equals(DOWN)) {
-				currentFloor--;
+			updateFloor();
+			boolean doIHaveToStop = doIHaveToStop();
+			if(doIHaveToStop){
+				commandToReturn = commands[(count++) % commands.length];				
+			}else if(previousCommand.equals("CLOSE") || previousCommand.equals("UP") || previousCommand.equals("DOWN")){
+				count = 0;
+				commandToReturn = getUpOrDownCommand(commandToReturn);
+			}else{
+				commandToReturn = commands[(count++) % commands.length];				
 			}
-			commandToReturn = commands[(count++) % commands.length];
 		}
 		previousCommand = commandToReturn;
 		return commandToReturn;
 	}
+	private void updateFloor() {
+		if (previousCommand.equals(UP)) {
+			currentFloor++;
+		} else if (previousCommand.equals(DOWN)) {
+			currentFloor--;
+		}
+	}
 
+	private String getUpOrDownCommand(String commandToReturn) {
+		boolean noCallAndNoGo = goQueue.size() == 0 && callQueue.size() == 0;
+		if (noCallAndNoGo) {
+			commandToReturn = NOTHING;
+			count = 0;
+		} else {
+			boolean onlyCall = goQueue.size() == 0 && callQueue.size() > 0;
+			boolean onlyGo = goQueue.size() > 0 && callQueue.size() == 0;
+			boolean both = goQueue.size() > 0 && callQueue.size() > 0;
+			if (onlyGo) {
+				commandToReturn = onlyGoAction(commandToReturn);
+			} else if(onlyCall){
+				commandToReturn = onlyCallAction(commandToReturn);
+			} else if (both) {
+				commandToReturn = onlyGoAction(commandToReturn);
+			}
+		}
+		count  = 1;
+		return commandToReturn;
+	}
+
+	
 	private String onlyGoAction(String commandToReturn) {
 		int go = goQueue.peek();
 		boolean iAmAtAGoFloor = currentFloor == go;
@@ -121,9 +138,18 @@ public class Elevator {
 		} else if(goFloorIsDown){
 			commandToReturn = "DOWN";
 		}else{
-			commandToReturn = "NOTHING";
-			System.out.println("goUpOrDown : i am lost");
+			commandToReturn = goToNearestExtremity();
 		}
+		return commandToReturn;
+	}
+	private String goToNearestExtremity() {
+		String commandToReturn;
+		if(Math.abs(currentFloor - lowerFloor) >  Math.abs(currentFloor - higherFloor)){
+			commandToReturn = "DOWN";
+		}else{
+			commandToReturn = "UP";
+		}
+		System.out.println("callUpOrDown : goToNearestExtremity "+commandToReturn);
 		return commandToReturn;
 	}
 
@@ -152,8 +178,8 @@ public class Elevator {
 		} else if(callFloorIsDown){
 			commandToReturn = "DOWN";
 		}else{
-			commandToReturn = "NOTHING";
-			System.out.println("callUpOrDown : i am lost");
+			commandToReturn = goToNearestExtremity();
+
 		}
 		return commandToReturn;
 	}
@@ -180,7 +206,12 @@ public class Elevator {
 			callQueue.offer(call);
 		}
 	}
-
+	
+	public void addCall(int atFloor, Directions to) {
+		Call call = new Call(atFloor, to);
+		callQueue.offer(call);
+	}	
+	
 	public Integer addUser() {
 		if(userIn.get() >= cabinSize){
 			System.out.println("max size reach: "+cabinSize);
@@ -192,4 +223,64 @@ public class Elevator {
 		return userIn.decrementAndGet();
 	}
 
+	private boolean doIHaveToStop() {
+		boolean doIHaveToStop = false;
+		if(goQueue.size() > 0){
+			Directions actualDirection = Directions.UP;
+			boolean iAmAtAGoFloor = currentFloor ==  goQueue.peek();
+			if(currentFloor > goQueue.peek()){
+				actualDirection = Directions.DOWN;
+			}
+			boolean elevatorIsNotFull = (userIn.get() < cabinSize );
+			boolean isCurrentFloorInCallQueueWithDirection = findCurrentFloorInCallQueueWithDirection(actualDirection);
+			boolean isCurrentFloorInCallQueueWithDirectionAndCabineIsNotFull = elevatorIsNotFull && isCurrentFloorInCallQueueWithDirection;
+			doIHaveToStop = iAmAtAGoFloor || isCurrentFloorInCallQueueWithDirectionAndCabineIsNotFull;
+			if(iAmAtAGoFloor){
+				removeCurentFloorInGoQueue();
+			}
+			if(isCurrentFloorInCallQueueWithDirection){
+				removeCurrentFloorInCallQueueWithDirection(actualDirection);
+			}
+		}else if(callQueue.size() > 0){
+			doIHaveToStop = findCurrentFloorInCallQueue();
+		}
+		return doIHaveToStop;
+	}
+	protected void removeCurentFloorInGoQueue() {
+		while(goQueue.contains(currentFloor)){
+			goQueue.remove(currentFloor);
+		}
+	}
+
+	private boolean findCurrentFloorInCallQueue() {
+		return findCallInCallQueue(new Call(currentFloor, Directions.UP)) || findCallInCallQueue(new Call(currentFloor, Directions.DOWN));
+	}	
+	
+	private boolean findCurrentFloorInCallQueueWithDirection(Directions actualDirection) {
+		return findCallInCallQueue(new Call(currentFloor, actualDirection)) ;
+	}	
+	private void removeCurrentFloorInCallQueueWithDirection(Directions actualDirection) {
+		removeCallInCallQueue(new Call(currentFloor, actualDirection)) ;
+	}	
+	
+	protected boolean findGoInCallQueue(int i) {
+		for(Integer goElement : goQueue){
+			if(goElement == i){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+
+	protected boolean findCallInCallQueue(Call call){
+		return callQueue.contains(call);
+	}	
+	
+	protected void removeCallInCallQueue(Call call){
+		while(callQueue.contains(call)){
+			callQueue.remove(call);
+		}
+	}	
+	
 }

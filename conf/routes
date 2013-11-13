@@ -8,7 +8,7 @@ GET     /                           controllers.Application.index()
 # Next Command
 GET     /nextCommand                controllers.Application.nextCommand
 # Reset
-GET     /reset                      controllers.Application.reset(cause: String ?= "reset", lowerFloor: Integer ?= 0, higherFloor: Integer ?= 5, cabinSize: Integer ?= 30)
+GET     /reset                      controllers.Application.reset(cause: String ?= "reset", lowerFloor: Integer ?= 0, higherFloor: Integer ?= 19, cabinSize: Integer ?= 42)
 # Go
 GET     /go		                    controllers.Application.go(floorToGo: Integer)
 # call
