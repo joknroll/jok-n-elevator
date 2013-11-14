@@ -34,6 +34,7 @@ public class Elevator {
 	public String name = "jok Elevator";
 	public String previousCommand = "OPEN";
 
+	// TODO add map of nbWaitingUserByStage, use it to 
 	
 	public Elevator(){
 		this(0,19,20);
@@ -64,8 +65,6 @@ public class Elevator {
 
 	public String nextCommand() {
 		boolean upOrDownState = count % 3 == 0;
-		boolean openState = count % 3 == 1;
-		boolean closeState = count % 3 == 2;
 		String commandToReturn = "NOTHING";
 		if (upOrDownState) {
 			commandToReturn = getUpOrDownCommand(commandToReturn);
@@ -84,6 +83,7 @@ public class Elevator {
 		previousCommand = commandToReturn;
 		return commandToReturn;
 	}
+	
 	private void updateFloor() {
 		if (previousCommand.equals(UP)) {
 			currentFloor++;
@@ -197,14 +197,22 @@ public class Elevator {
 
 	public void addGo(int floorToGo) {
 		if(floorToGo >= lowerFloor && floorToGo <= higherFloor){
-			goQueue.offer(floorToGo);
+			if(!goQueue.contains(floorToGo)){
+				goQueue.offer(floorToGo);
+			}
+		}else{
+			System.out.println("addGo out of limit: "+floorToGo+" (must be between "+lowerFloor+" and "+higherFloor+")" );
 		}
 	}
 
 	public void addCall(int atFloor, String to) {
 		if(atFloor >= lowerFloor && atFloor <= higherFloor){
 			Call call = new Call(atFloor, Directions.valueOf(to));
-			callQueue.offer(call);
+			if(!callQueue.contains(call)){
+				callQueue.offer(call);
+			}
+		}else{
+			System.out.println("addCall out of limit: "+atFloor+" (must be between "+lowerFloor+" and "+higherFloor+")" );
 		}
 	}
 	
