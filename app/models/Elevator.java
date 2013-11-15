@@ -1,6 +1,9 @@
 package models;
 
+import java.util.Map;
 import java.util.Queue;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,6 +37,10 @@ public class Elevator {
 	public String name = "jok Elevator";
 	public String previousCommand = "OPEN";
 
+	public Map<Integer , Integer > waitingUserToUpByFloor = new ConcurrentHashMap<Integer, Integer>();
+	public Map<Integer , Integer > waitingUserToDownByFloor = new ConcurrentHashMap<Integer, Integer>();
+	public Map<Integer , Integer > goUserByFloor = new ConcurrentHashMap<Integer, Integer>();	
+	
 	// TODO add map of nbWaitingUserByStage, use it to 
 	
 	public Elevator(){
@@ -50,6 +57,13 @@ public class Elevator {
 		this.higherFloor = higherFloor;
 		this.cabinSize = cabinSize;
 		this.currentFloor = lowerFloor;
+		
+		for(int i = lowerFloor; i <= higherFloor; i++){
+			waitingUserToUpByFloor.put(i, 0);
+			waitingUserToDownByFloor.put(i, 0);
+			goUserByFloor.put(i, 0);
+		}
+		
 		instance = this;
 	}
 
@@ -207,10 +221,7 @@ public class Elevator {
 
 	public void addCall(int atFloor, String to) {
 		if(atFloor >= lowerFloor && atFloor <= higherFloor){
-			Call call = new Call(atFloor, Directions.valueOf(to));
-			if(!callQueue.contains(call)){
-				callQueue.offer(call);
-			}
+			addCall(atFloor, Directions.valueOf(to));
 		}else{
 			System.out.println("addCall out of limit: "+atFloor+" (must be between "+lowerFloor+" and "+higherFloor+")" );
 		}
@@ -218,7 +229,14 @@ public class Elevator {
 	
 	public void addCall(int atFloor, Directions to) {
 		Call call = new Call(atFloor, to);
-		callQueue.offer(call);
+		if(!callQueue.contains(call)){
+			callQueue.offer(call);
+		}
+		if(call.to.equals(Directions.UP)){
+			waitingUserToUpByFloor.put(call.atFloor, waitingUserToUpByFloor.get(call.atFloor) +1 );
+		}else if(call.to.equals(Directions.DOWN)){
+			waitingUserToDownByFloor.put(call.atFloor, waitingUserToDownByFloor.get(call.atFloor) +1 );			
+		}
 	}	
 	
 	public Integer addUser() {
@@ -247,11 +265,18 @@ public class Elevator {
 			if(iAmAtAGoFloor){
 				removeCurentFloorInGoQueue();
 			}
-			if(isCurrentFloorInCallQueueWithDirection){
-				removeCurrentFloorInCallQueueWithDirection(actualDirection);
+			if(isCurrentFloorInCallQueueWithDirectionAndCabineIsNotFull){
+				removeCurrentFloorInCallQueueWithAllDirection();
+				waitingUserToUpByFloor.put(currentFloor, 0);
+				waitingUserToDownByFloor.put(currentFloor, 0);
 			}
 		}else if(callQueue.size() > 0){
 			doIHaveToStop = findCurrentFloorInCallQueue();
+			if(doIHaveToStop){
+				removeCurrentFloorInCallQueueWithAllDirection();
+				waitingUserToUpByFloor.put(currentFloor, 0);
+				waitingUserToDownByFloor.put(currentFloor, 0);				
+			}
 		}
 		return doIHaveToStop;
 	}
@@ -268,8 +293,9 @@ public class Elevator {
 	private boolean findCurrentFloorInCallQueueWithDirection(Directions actualDirection) {
 		return findCallInCallQueue(new Call(currentFloor, actualDirection)) ;
 	}	
-	private void removeCurrentFloorInCallQueueWithDirection(Directions actualDirection) {
-		removeCallInCallQueue(new Call(currentFloor, actualDirection)) ;
+	private void removeCurrentFloorInCallQueueWithAllDirection() {
+		removeCallInCallQueue(new Call(currentFloor, Directions.UP)) ;
+		removeCallInCallQueue(new Call(currentFloor, Directions.DOWN)) ;
 	}	
 	
 	protected boolean findGoInCallQueue(int i) {

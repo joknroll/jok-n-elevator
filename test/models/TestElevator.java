@@ -28,6 +28,50 @@ public class TestElevator {
 	}
 	
 	@Test
+	public void testNumberWaiting(){
+		Elevator elevator  = new Elevator(0, 10, 30);
+		elevator.addCall(2, Directions.UP);
+		elevator.addCall(2, Directions.UP);
+		elevator.addCall(2, Directions.UP);
+		assertThat(elevator.waitingUserToUpByFloor.get(2)).isEqualTo(3);
+		
+		elevator.currentFloor = 1;
+		
+		// go to the second floor
+		String nextCommandUp = elevator.nextCommand();
+		assertThat(nextCommandUp).isEqualTo("UP");
+		
+		// open at the second floor
+		String nextCommandOpen = elevator.nextCommand();
+		assertThat(nextCommandOpen).isEqualTo("OPEN");
+		
+		assertThat(elevator.waitingUserToUpByFloor.get(2)).isEqualTo(0);
+	}
+	
+	@Test
+	public void testSetPriorityToEmptyCabin(){
+		Elevator elevator  = new Elevator();
+		elevator.userIn.set(42);
+		elevator.cabinSize = 42;
+		elevator.addGo(5);
+		elevator.addGo(3);
+		elevator.addGo(3);
+		elevator.addGo(3);
+		elevator.addGo(3);
+		elevator.addGo(3);
+		elevator.addGo(3);
+		elevator.currentFloor = 6;
+		// go to 5 but don't stop
+		String nextCommandDown = elevator.nextCommand();
+		assertThat(nextCommandDown).isEqualTo("DOWN");
+		
+		// go to 4
+		String nextCommandDown2 = elevator.nextCommand();
+		assertThat(nextCommandDown2).isEqualTo("DOWN");
+		
+	}
+	
+	@Test
 	public void dummyTestRemoveGo(){
 		Call callTwo = new Call(2, Directions.UP);
 		Elevator elevator  = new Elevator();
