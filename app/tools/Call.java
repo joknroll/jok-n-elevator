@@ -1,5 +1,11 @@
 package tools;
 
+import models.Elevator;
+import play.libs.Json;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public class Call {
 
 	public Integer atFloor;
@@ -24,6 +30,15 @@ public class Call {
 	}
 	
 	
+	
+	@Override
+	public String toString() {
+		  ObjectNode result = Json.newObject();
+		    result.put("atFloor", atFloor);
+		    result.put("to", to.toString());
+		    
+		return result.toString();
+	}
 	
 	@Override
 	public int hashCode() {

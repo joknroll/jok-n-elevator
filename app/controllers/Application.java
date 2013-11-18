@@ -1,9 +1,15 @@
 package controllers;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.POJONode;
+
 import models.Elevator;
 import play.*;
 import play.mvc.*;
 import views.html.*;
+import play.libs.Json;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Application extends Controller {
 
@@ -43,6 +49,27 @@ public class Application extends Controller {
 	public static Result userHasExited(){
 		Integer nbOfUser = Elevator.getInstance().removeUser();
 		return ok("userHasExited Now we are: "+nbOfUser);		
+	}
+	
+	
+	@BodyParser.Of(BodyParser.Json.class)
+	public static Result elevatorJson() {
+	  ObjectNode result = Json.newObject();
+
+	    result.put("name", Elevator.getInstance().name);
+	    result.put("userIn", Elevator.getInstance().userIn.get());
+	    result.put("currentFloor", Elevator.getInstance().currentFloor);
+	    result.put("lowerFloor", Elevator.getInstance().lowerFloor);
+	    result.put("higherFloor", Elevator.getInstance().higherFloor);
+	    result.put("cabinSize", Elevator.getInstance().cabinSize);
+	    
+	    POJONode resultGoQueue =  new POJONode(Elevator.getInstance().goQueue);
+	    POJONode resultCallQueue =  new POJONode(Elevator.getInstance().callQueue);
+	    ObjectMapper objectMapper = new ObjectMapper();
+	    
+	    result.put("goQueue", resultGoQueue);
+	    result.put("callQueue", objectMapper.valueToTree(resultCallQueue));
+	    return ok(result);
 	}
 
 }
