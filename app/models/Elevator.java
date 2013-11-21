@@ -151,9 +151,11 @@ public class Elevator {
 	private String goUpOrDown(String commandToReturn, int go) {
 		boolean goFloorIsUp = currentFloor < go;
 		boolean goFloorIsDown = currentFloor > go;
-		if (goFloorIsUp) {
+		boolean imOnTop = currentFloor == higherFloor; 
+		boolean imOnBottom = currentFloor == lowerFloor; 
+		if (goFloorIsUp || imOnBottom) {
 			commandToReturn = "UP";
-		} else if(goFloorIsDown){
+		} else if(goFloorIsDown || imOnTop){
 			commandToReturn = "DOWN";
 		}else{
 			commandToReturn = goToNearestExtremity();
@@ -191,9 +193,11 @@ public class Elevator {
 	private String callUpOrDown(String commandToReturn, Call call) {
 		boolean callFloorIsUp = currentFloor < call.atFloor;
 		boolean callFloorIsDown = currentFloor > call.atFloor;
-		if (callFloorIsUp) {
+		boolean imOnTop = currentFloor == higherFloor; 
+		boolean imOnBottom = currentFloor == lowerFloor; 
+		if (callFloorIsUp || imOnBottom) {
 			commandToReturn = "UP";
-		} else if(callFloorIsDown){
+		} else if(callFloorIsDown || imOnTop){
 			commandToReturn = "DOWN";
 		}else{
 			commandToReturn = goToNearestExtremity();
